@@ -1,0 +1,1848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beneath the Beautiful Game — Martina Ormeño Reyes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;0,900;1,700&family=Barlow:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+
+/* === RESET === */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* === THEME VARIABLES === */
+:root {
+    --bg:        #0B1220;
+    --bg-red:    #180A0A;
+    --bg-deep:   #060C18;
+    --gold:      #F0B830;
+    --red:       #D93025;
+    --blue:      #3B7FD4;
+    --green-acc: #1EA868;
+    --white:     #FFFFFF;
+    --w85:       rgba(255,255,255,0.85);
+    --w60:       rgba(255,255,255,0.60);
+    --w35:       rgba(255,255,255,0.35);
+    --sans-hed:  'Barlow Condensed', sans-serif;
+    --sans-body: 'Barlow', sans-serif;
+    --ease:      cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* === FIXED 16:9 STAGE === */
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #000; }
+.deck-viewport { position: fixed; inset: 0; overflow: hidden; background: #000; }
+.deck-stage {
+    position: absolute; left: 0; top: 0;
+    width: 1920px; height: 1080px;
+    overflow: hidden; transform-origin: 0 0;
+}
+.slide {
+    position: absolute; inset: 0;
+    width: 1920px; height: 1080px;
+    overflow: hidden; display: block;
+    visibility: hidden; opacity: 0;
+    pointer-events: none;
+    background: var(--bg);
+    font-family: var(--sans-body);
+}
+.slide.active, .slide.visible {
+    visibility: visible; opacity: 1;
+    pointer-events: auto; z-index: 1;
+}
+
+@media print {
+    html, body { width: 1920px; height: auto; overflow: visible; background: #000; }
+    .deck-viewport { position: static; overflow: visible; }
+    .deck-stage { position: static; width: auto; height: auto; transform: none !important; }
+    .slide {
+        position: relative; display: block !important;
+        visibility: visible !important; opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px; height: 1080px;
+        break-after: page; page-break-after: always;
+    }
+    .slide:last-child { break-after: auto; page-break-after: auto; }
+    .deck-controls, .slide-counter, .edit-hotzone, .edit-toggle { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; }
+}
+
+/* === REVEAL ANIMATIONS === */
+.reveal {
+    opacity: 0; transform: translateY(26px);
+    transition: opacity 0.65s var(--ease), transform 0.65s var(--ease);
+}
+.slide.visible .reveal { opacity: 1; transform: translateY(0); }
+.d1 { transition-delay: 0.07s; }
+.d2 { transition-delay: 0.17s; }
+.d3 { transition-delay: 0.27s; }
+.d4 { transition-delay: 0.37s; }
+.d5 { transition-delay: 0.47s; }
+.d6 { transition-delay: 0.57s; }
+
+/* === CHROME === */
+.slide-counter {
+    position: fixed; bottom: 24px; right: 40px;
+    z-index: 1000; font-family: var(--sans-body);
+    font-size: 13px; color: rgba(255,255,255,0.45);
+    letter-spacing: 0.1em;
+}
+.nav-dots { display: flex; gap: 7px; align-items: center; }
+.nav-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: rgba(255,255,255,0.28); cursor: pointer;
+    transition: background 0.3s, transform 0.3s;
+}
+.nav-dot.active { background: rgba(255,255,255,0.85); transform: scale(1.35); }
+
+/* === EDIT MODE === */
+.edit-hotzone {
+    position: fixed; top: 0; left: 0;
+    width: 80px; height: 80px; z-index: 10000; cursor: pointer;
+}
+.edit-toggle {
+    position: fixed; top: 14px; left: 14px;
+    background: var(--gold); color: var(--bg); border: none;
+    padding: 8px 16px; font-size: 13px; font-family: var(--sans-body);
+    font-weight: 700; cursor: pointer; opacity: 0; pointer-events: none;
+    transition: opacity 0.3s; z-index: 10001; border-radius: 4px;
+    letter-spacing: 0.04em;
+}
+.edit-toggle.show, .edit-toggle.active { opacity: 1; pointer-events: auto; }
+.edit-mode [contenteditable] { outline: 2px dashed var(--gold); outline-offset: 2px; cursor: text; }
+
+/* === GLOBAL SHARED ELEMENTS === */
+.slide-label {
+    position: absolute; top: 38px; left: 96px;
+    font-family: var(--sans-hed); font-size: 21px; font-weight: 700;
+    letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold);
+}
+.left-rule {
+    position: absolute; left: 64px; top: 80px; bottom: 80px; width: 3px;
+    background: linear-gradient(to bottom, var(--gold), rgba(240,184,48,0.2), transparent);
+    pointer-events: none;
+}
+.texture {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 52px 52px; background-position: 26px 26px;
+    pointer-events: none;
+}
+.top-band {
+    position: absolute; top: 0; left: 0; right: 0; height: 7px;
+    background: linear-gradient(to right,
+        #D93025 0%, #D93025 20%,
+        #F0B830 20%, #F0B830 40%,
+        #FFFFFF 40%, #FFFFFF 60%,
+        #3B7FD4 60%, #3B7FD4 80%,
+        #1EA868 80%, #1EA868 100%);
+    opacity: 0.85;
+}
+
+/* ================================================
+   SLIDE 1 — TITLE
+================================================ */
+.s1-glow-gold {
+    position: absolute; width: 1000px; height: 800px;
+    background: radial-gradient(ellipse at 75% 30%, rgba(240,185,50,0.18) 0%, rgba(220,150,30,0.08) 40%, transparent 68%);
+    right: -100px; top: -50px; pointer-events: none;
+}
+.s1-glow-blue {
+    position: absolute; width: 700px; height: 600px;
+    background: radial-gradient(ellipse at 20% 80%, rgba(60,130,220,0.12) 0%, rgba(40,100,180,0.05) 50%, transparent 70%);
+    left: -100px; bottom: -100px; pointer-events: none;
+}
+.s1-globe-outer {
+    position: absolute; right: -200px; top: 50%; transform: translateY(-50%);
+    width: 780px; height: 780px; border-radius: 50%;
+    border: 2px solid rgba(240,184,48,0.12);
+}
+.s1-globe-mid {
+    position: absolute; right: -80px; top: 50%; transform: translateY(-50%);
+    width: 520px; height: 520px; border-radius: 50%;
+    border: 1.5px solid rgba(59,127,212,0.12);
+}
+.s1-globe-inner {
+    position: absolute; right: 50px; top: 50%; transform: translateY(-50%);
+    width: 280px; height: 280px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+.s1-dot-grid {
+    position: absolute; right: 100px; top: 160px;
+    width: 480px; height: 700px;
+    display: grid; grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(8, 1fr);
+    opacity: 0.18;
+}
+.d-dot { width: 14px; height: 14px; border-radius: 50%; margin: 22px auto; }
+.dr  { background: #D93025; }
+.dg  { background: #F0B830; }
+.dw  { background: #FFFFFF; }
+.db  { background: #3B7FD4; }
+.dgn { background: #1EA868; }
+.dk  { background: rgba(255,255,255,0.3); }
+.s1-eyebrow {
+    position: absolute; top: 38px; left: 96px;
+    font-family: var(--sans-hed); font-size: 21px; font-weight: 700;
+    letter-spacing: 0.28em; text-transform: uppercase; color: var(--gold);
+}
+.s1-title {
+    position: absolute; top: 220px; left: 96px; width: 1300px;
+    font-family: var(--sans-hed); font-size: 160px; font-weight: 900;
+    line-height: 0.88; text-transform: uppercase; letter-spacing: 0.01em;
+}
+.s1-t1 { display: block; color: var(--gold); }
+.s1-t2 { display: block; color: var(--white); }
+.s1-t3 { display: block; color: var(--white); }
+.s1-rule {
+    position: absolute; top: 694px; left: 96px;
+    width: 80px; height: 6px; background: var(--red);
+}
+.s1-subtitle {
+    position: absolute; top: 740px; left: 96px; width: 980px;
+    font-family: var(--sans-body); font-size: 31px; font-weight: 300;
+    line-height: 1.5; color: rgba(255,255,255,0.52);
+}
+.s1-author {
+    position: absolute; bottom: 72px; left: 96px;
+    font-family: var(--sans-body); font-size: 23px; font-weight: 600;
+    color: rgba(255,255,255,0.28); letter-spacing: 0.09em;
+}
+
+/* ================================================
+   SLIDE 2 — HOOK / THESIS
+================================================ */
+.s2-deco {
+    position: absolute; right: 60px; top: 40px;
+    font-family: var(--sans-hed); font-size: 480px; font-weight: 900;
+    color: var(--gold); opacity: 0.04; line-height: 1;
+    user-select: none; pointer-events: none;
+}
+.s2-headline {
+    position: absolute; top: 100px; left: 96px; width: 1100px;
+    font-family: var(--sans-hed); font-size: 80px; font-weight: 800;
+    line-height: 1.0; color: var(--white); text-transform: uppercase;
+}
+.s2-rule {
+    position: absolute; top: 392px; left: 96px;
+    width: 80px; height: 5px; background: var(--gold);
+}
+.s2-question {
+    position: absolute; top: 440px; left: 96px; width: 1060px;
+    font-family: var(--sans-body); font-size: 30px;
+    color: var(--w60); line-height: 1.65;
+}
+.s2-thesis {
+    position: absolute; top: 594px; left: 96px; width: 1100px;
+    padding: 36px 48px;
+    background: rgba(240,184,48,0.08);
+    border-left: 7px solid var(--gold);
+    font-family: var(--sans-body); font-size: 28px; font-weight: 600;
+    color: var(--w85); line-height: 1.65;
+}
+
+/* ================================================
+   SLIDE 3 — TOURNAMENT FORMAT
+================================================ */
+.s3-headline {
+    position: absolute; top: 80px; left: 96px; width: 1200px;
+    font-family: var(--sans-hed); font-size: 76px; font-weight: 800;
+    line-height: 1.0; color: var(--white); text-transform: uppercase;
+}
+.funnel-wrap {
+    position: absolute; top: 240px; left: 96px; width: 840px;
+}
+.funnel-row { display: flex; flex-direction: column; align-items: flex-start; }
+.funnel-block {
+    height: 74px; display: flex; align-items: center;
+    padding: 0 32px; font-family: var(--sans-hed);
+    font-size: 26px; font-weight: 700; color: var(--white);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    margin-bottom: 2px;
+}
+.fb1 { width: 760px; background: rgba(59,127,212,0.5); }
+.fb2 { width: 620px; background: rgba(59,127,212,0.65); }
+.fb3 { width: 490px; background: rgba(30,168,104,0.55); }
+.fb4 { width: 370px; background: rgba(30,168,104,0.75); }
+.fb5 { width: 250px; background: var(--gold); color: var(--bg); }
+.funnel-arr {
+    width: 36px; height: 26px; display: flex;
+    align-items: center; padding-left: 16px; margin: 0;
+}
+.funnel-arr::before { content: '▾'; color: var(--w35); font-size: 22px; }
+
+/* Points table */
+.pts-wrap {
+    position: absolute; top: 240px; right: 96px; width: 560px;
+}
+.pts-title {
+    font-family: var(--sans-hed); font-size: 20px; font-weight: 700;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 20px;
+}
+.pts-row {
+    display: flex; align-items: center;
+    padding: 18px 28px; margin-bottom: 10px;
+}
+.pts-win  { background: var(--gold); }
+.pts-draw { background: var(--red); }
+.pts-loss { background: transparent; border: 2px solid rgba(255,255,255,0.15); }
+.pts-label {
+    font-family: var(--sans-hed); font-size: 26px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em; flex: 1;
+}
+.pts-win  .pts-label { color: var(--bg); }
+.pts-draw .pts-label,
+.pts-loss .pts-label { color: var(--white); }
+.pts-num {
+    font-family: var(--sans-hed); font-size: 52px; font-weight: 900;
+}
+.pts-win  .pts-num { color: var(--bg); }
+.pts-draw .pts-num,
+.pts-loss .pts-num { color: var(--white); }
+.pts-unit {
+    font-family: var(--sans-body); font-size: 20px;
+    margin-left: 6px; align-self: flex-end; padding-bottom: 8px;
+}
+.pts-win  .pts-unit { color: rgba(11,18,32,0.6); }
+.pts-draw .pts-unit,
+.pts-loss .pts-unit { color: var(--w60); }
+
+/* Prize money callout */
+.s3-prize {
+    margin-top: 20px;
+    padding: 28px 36px;
+    background: rgba(240,184,48,0.07);
+    border: 1px solid rgba(240,184,48,0.25);
+    border-left: 5px solid var(--gold);
+}
+.s3-prize-label {
+    font-family: var(--sans-hed); font-size: 16px; font-weight: 700;
+    letter-spacing: 0.24em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 10px;
+}
+.s3-prize-total {
+    font-family: var(--sans-hed); font-size: 64px; font-weight: 900;
+    color: var(--white); line-height: 1; margin-bottom: 8px;
+}
+.s3-prize-sub {
+    font-family: var(--sans-body); font-size: 21px;
+    color: var(--w60); line-height: 1.5;
+}
+.s3-note {
+    position: absolute; bottom: 72px; left: 96px; right: 96px;
+    font-family: var(--sans-body); font-size: 22px;
+    color: var(--w35); font-style: italic;
+}
+
+/* ================================================
+   SLIDE 4 — ORIGINS
+================================================ */
+.s4-headline {
+    position: absolute; top: 80px; left: 96px; width: 1100px;
+    font-family: var(--sans-hed); font-size: 80px; font-weight: 800;
+    line-height: 1.0; color: var(--white); text-transform: uppercase;
+}
+.s4-bullets {
+    position: absolute; top: 280px; left: 96px; width: 900px;
+}
+.s4-item {
+    display: flex; align-items: flex-start; gap: 22px; margin-bottom: 32px;
+}
+.s4-dot {
+    width: 13px; height: 13px; border-radius: 50%;
+    background: var(--gold); margin-top: 12px; flex-shrink: 0;
+}
+.s4-text {
+    font-family: var(--sans-body); font-size: 29px;
+    color: var(--w85); line-height: 1.52;
+}
+.s4-tl {
+    position: absolute; bottom: 64px; left: 96px; right: 96px; height: 140px;
+}
+.s4-tl-line {
+    position: absolute; top: 26px; left: 0; right: 0;
+    height: 2px; background: rgba(255,255,255,0.15);
+}
+.s4-tl-events {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between;
+}
+.s4-ev { display: flex; flex-direction: column; align-items: center; width: 240px; }
+.s4-ev-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--gold); margin-top: 19px; position: relative; z-index: 2;
+}
+.s4-ev-year {
+    font-family: var(--sans-hed); font-size: 36px; font-weight: 700;
+    color: var(--gold); order: -1;
+}
+.s4-ev-desc {
+    font-family: var(--sans-body); font-size: 19px; color: var(--w60);
+    text-align: center; line-height: 1.4; margin-top: 10px; max-width: 220px;
+}
+
+/* ================================================
+   SLIDE 5 — SPORTSWASHING (CRIMSON BG)
+================================================ */
+#s5 { background: var(--bg-red) !important; }
+.s5-big-s {
+    position: absolute; right: -20px; top: 20px;
+    font-family: var(--sans-hed); font-size: 720px; font-weight: 900;
+    color: var(--red); opacity: 0.06; line-height: 1;
+    user-select: none; pointer-events: none;
+}
+.s5-left-rule {
+    position: absolute; left: 64px; top: 80px; bottom: 80px; width: 3px;
+    background: linear-gradient(to bottom, var(--red), rgba(217,48,37,0.2), transparent);
+    pointer-events: none;
+}
+.s5-label {
+    position: absolute; top: 38px; left: 96px;
+    font-family: var(--sans-hed); font-size: 21px; font-weight: 700;
+    letter-spacing: 0.24em; text-transform: uppercase; color: var(--red);
+}
+.s5-headline {
+    position: absolute; top: 110px; left: 96px; width: 1100px;
+    font-family: var(--sans-hed); font-size: 88px; font-weight: 900;
+    line-height: 0.97; color: var(--white); text-transform: uppercase;
+}
+.s5-term {
+    position: absolute; top: 420px; left: 96px;
+    font-family: var(--sans-hed); font-size: 58px; font-weight: 900;
+    letter-spacing: 0.1em; color: var(--red); text-transform: uppercase;
+}
+.s5-pos {
+    position: absolute; top: 506px; left: 100px;
+    font-family: var(--sans-body); font-size: 22px; font-style: italic;
+    color: rgba(255,255,255,0.38);
+}
+.s5-definition {
+    position: absolute; top: 562px; left: 96px; width: 1260px;
+    font-family: var(--sans-body); font-size: 32px;
+    color: var(--w85); line-height: 1.65;
+}
+.s5-kicker {
+    position: absolute; bottom: 100px; left: 96px;
+    font-family: var(--sans-body); font-size: 29px; font-style: italic;
+    color: rgba(255,255,255,0.35);
+}
+
+/* ================================================
+   SLIDE 6 — 1934 & 1978
+================================================ */
+.s6-headline {
+    position: absolute; top: 70px; left: 96px; width: 1300px;
+    font-family: var(--sans-hed); font-size: 80px; font-weight: 800;
+    line-height: 1.0; color: var(--white); text-transform: uppercase;
+}
+.s6-panels {
+    position: absolute; top: 242px; left: 96px; width: 1728px;
+    display: flex; gap: 40px;
+}
+.s6-panel {
+    flex: 1; padding: 44px 52px 40px;
+    position: relative; min-height: 780px;
+}
+.s6-panel-gold {
+    background: rgba(240,184,48,0.07);
+    border-left: 6px solid var(--gold);
+}
+.s6-panel-red {
+    background: rgba(217,48,37,0.07);
+    border-left: 6px solid var(--red);
+}
+.s6-yr {
+    font-family: var(--sans-hed); font-size: 100px; font-weight: 900;
+    line-height: 1; margin-bottom: 0px;
+}
+.s6-panel-gold .s6-yr { color: var(--gold); opacity: 0.5; }
+.s6-panel-red  .s6-yr { color: var(--red);  opacity: 0.5; }
+.s6-city {
+    font-family: var(--sans-hed); font-size: 22px; font-weight: 700;
+    letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 28px;
+}
+.s6-panel-gold .s6-city { color: var(--gold); }
+.s6-panel-red  .s6-city { color: var(--red);  }
+.s6-body {
+    font-family: var(--sans-body); font-size: 27px;
+    color: var(--w85); line-height: 1.65;
+}
+.s6-kicker {
+    position: absolute; bottom: 32px; left: 52px; right: 52px;
+    font-family: var(--sans-body); font-size: 21px; font-style: italic;
+    color: var(--w35); border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 16px;
+}
+
+/* ================================================
+   SLIDE 7 — SOUTH AFRICA & RUSSIA
+================================================ */
+.s7-headline {
+    position: absolute; top: 70px; left: 96px; width: 1300px;
+    font-family: var(--sans-hed); font-size: 76px; font-weight: 800;
+    line-height: 1.0; color: var(--white); text-transform: uppercase;
+}
+.s7-cols {
+    position: absolute; top: 248px; left: 96px; width: 1728px;
+    display: flex; gap: 48px;
+}
+.s7-col {
+    flex: 1; padding: 44px 48px;
+    border-left: 6px solid var(--gold);
+    background: rgba(240,184,48,0.05);
+}
+.s7-col-name {
+    font-family: var(--sans-hed); font-size: 21px; font-weight: 700;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 10px;
+}
+.s7-col-period {
+    font-family: var(--sans-hed); font-size: 52px; font-weight: 800;
+    color: var(--white); margin-bottom: 18px; line-height: 1.0;
+    text-transform: uppercase;
+}
+.s7-col-body {
+    font-family: var(--sans-body); font-size: 27px;
+    color: var(--w85); line-height: 1.62;
+}
+.s7-tl {
+    position: absolute; bottom: 56px; left: 96px; right: 96px; height: 104px;
+}
+.s7-tl-line {
+    position: absolute; top: 20px; left: 0; right: 0;
+    height: 2px; background: rgba(255,255,255,0.12);
+}
+.s7-tl-events {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between;
+}
+.s7-ev { display: flex; flex-direction: column; align-items: center; }
+.s7-ev-dot {
+    width: 13px; height: 13px; border-radius: 50%;
+    position: relative; z-index: 2; margin-top: 14px;
+}
+.s7-ev:nth-child(odd)  .s7-ev-dot { background: var(--gold); }
+.s7-ev:nth-child(even) .s7-ev-dot { background: var(--red); }
+.s7-ev-year {
+    font-family: var(--sans-body); font-size: 18px; font-weight: 700;
+    color: var(--white); margin-top: 8px; order: -1;
+}
+.s7-ev-desc {
+    font-family: var(--sans-body); font-size: 16px;
+    color: var(--w60); text-align: center;
+    line-height: 1.35; margin-top: 6px; max-width: 180px;
+}
+
+/* ================================================
+   SLIDE 8 — MUSIC & UNITY (REDESIGN)
+================================================ */
+.s8-glow {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 65% 50%, rgba(240,184,48,0.14) 0%, rgba(220,150,30,0.06) 40%, transparent 65%);
+    pointer-events: none;
+}
+.s8-ghost {
+    position: absolute; left: -10px; top: 50%; transform: translateY(-52%);
+    font-family: var(--sans-hed); font-size: 220px; font-weight: 900;
+    text-transform: uppercase; color: var(--gold);
+    opacity: 0.06; user-select: none; pointer-events: none;
+    white-space: nowrap; letter-spacing: 0.04em;
+}
+.s8-rings {
+    position: absolute; right: 100px; top: 50%; transform: translateY(-50%);
+    width: 560px; height: 560px;
+}
+.s8-ring {
+    position: absolute; top: 50%; left: 50%;
+    border-radius: 50%; opacity: 0;
+    transform: translate(-50%,-50%) scale(0);
+}
+.slide.visible .s8-ring { animation: ring-out 3.5s ease-out infinite; }
+.s8-ring:nth-child(1) { width:  80px; height:  80px; border: 3px solid #D93025; animation-delay: 0.0s; }
+.s8-ring:nth-child(2) { width: 180px; height: 180px; border: 3px solid #F0B830; animation-delay: 0.6s; }
+.s8-ring:nth-child(3) { width: 280px; height: 280px; border: 3px solid #3B7FD4; animation-delay: 1.2s; }
+.s8-ring:nth-child(4) { width: 380px; height: 380px; border: 3px solid #1EA868; animation-delay: 1.8s; }
+.s8-ring:nth-child(5) { width: 480px; height: 480px; border: 2px solid rgba(255,255,255,0.18); animation-delay: 2.4s; }
+.s8-ring:nth-child(6) { width: 560px; height: 560px; border: 1px solid rgba(255,255,255,0.06); animation-delay: 3.0s; }
+.s8-ring-center {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--gold);
+}
+@keyframes ring-out {
+    0%   { transform: translate(-50%,-50%) scale(0); opacity: 0.9; }
+    100% { transform: translate(-50%,-50%) scale(1); opacity: 0; }
+}
+.s8-headline {
+    position: absolute; top: 96px; left: 96px; width: 880px;
+    font-family: var(--sans-hed); font-size: 88px; font-weight: 900;
+    line-height: 0.95; color: var(--white); text-transform: uppercase;
+}
+.s8-song {
+    position: absolute; top: 370px; left: 96px;
+    font-family: var(--sans-hed); font-size: 46px; font-weight: 700;
+    font-style: italic; color: var(--gold); text-transform: uppercase;
+}
+.s8-body {
+    position: absolute; top: 454px; left: 96px; width: 960px;
+    font-family: var(--sans-body); font-size: 30px;
+    color: var(--w85); line-height: 1.65;
+}
+.s8-stat {
+    position: absolute; bottom: 100px; left: 96px; width: 900px;
+    font-family: var(--sans-body); font-size: 24px;
+    color: var(--w60); font-style: italic;
+}
+
+/* ================================================
+   SLIDE 9 — LEGENDS (3-PANEL RESTRUCTURE)
+================================================ */
+.s9-headline {
+    position: absolute; top: 70px; left: 96px; width: 1600px;
+    font-family: var(--sans-hed); font-size: 68px; font-weight: 900;
+    line-height: 1.0; color: var(--white); text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+.s9-panels {
+    position: absolute; top: 218px; left: 96px; width: 1728px;
+    display: flex; gap: 36px; bottom: 56px;
+}
+.s9-panel {
+    flex: 1; padding: 40px 40px 36px;
+    position: relative;
+}
+.s9-panel-1 { background: rgba(240,184,48,0.06); border-top: 5px solid var(--gold); }
+.s9-panel-2 { background: rgba(217,48,37,0.06);  border-top: 5px solid var(--red); }
+.s9-panel-3 { background: rgba(59,127,212,0.06); border-top: 5px solid var(--blue); }
+.s9-player {
+    font-family: var(--sans-hed); font-size: 64px; font-weight: 900;
+    text-transform: uppercase; color: var(--white);
+    line-height: 1; margin-bottom: 8px;
+}
+.s9-year {
+    font-family: var(--sans-hed); font-size: 22px; font-weight: 700;
+    letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 20px;
+}
+.s9-panel-1 .s9-year { color: var(--gold); }
+.s9-panel-2 .s9-year { color: var(--red); }
+.s9-panel-3 .s9-year { color: var(--blue); }
+/* Mini timeline (Maradona panel) */
+.s9-mini-tl { margin: 4px 0 22px; position: relative; height: 80px; }
+.s9-mini-line {
+    position: absolute; top: 30px; left: 0; right: 0;
+    height: 2px; background: rgba(255,255,255,0.12);
+}
+.s9-mini-fill {
+    position: absolute; top: 30px; left: 0;
+    height: 2px; background: var(--gold);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 1.2s var(--ease) 0.4s;
+}
+.slide.visible .s9-mini-fill { transform: scaleX(1); }
+.s9-mini-events {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-around;
+}
+.s9-mini-ev { display: flex; flex-direction: column; align-items: center; }
+.s9-mini-ev-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--gold); position: relative; z-index: 2;
+    margin-top: 24px;
+}
+.s9-mini-ev-time {
+    font-family: var(--sans-body); font-size: 15px; font-weight: 700;
+    color: var(--gold); order: -1; margin-bottom: 3px;
+}
+.s9-mini-ev-name {
+    font-family: var(--sans-body); font-size: 14px; color: var(--w60);
+    margin-top: 8px; text-align: center; line-height: 1.3;
+}
+.s9-panel-body {
+    font-family: var(--sans-body); font-size: 24px;
+    color: var(--w60); line-height: 1.6;
+}
+
+/* ================================================
+   SLIDE 10 — ELIGIBILITY
+================================================ */
+.s10-headline {
+    position: absolute; top: 70px; left: 96px; width: 1300px;
+    font-family: var(--sans-hed); font-size: 80px; font-weight: 800;
+    line-height: 1.0; color: var(--white); text-transform: uppercase;
+}
+.s10-contrast {
+    position: absolute; top: 240px; left: 96px; width: 1728px; bottom: 110px;
+    display: flex;
+}
+.s10-side { flex: 1; padding: 52px 56px; }
+.s10-club    { background: rgba(59,127,212,0.08); }
+.s10-country { background: rgba(240,184,48,0.08); }
+.s10-divider { width: 4px; flex-shrink: 0; background: var(--gold); opacity: 0.4; }
+.s10-side-label {
+    font-family: var(--sans-hed); font-size: 22px; font-weight: 700;
+    letter-spacing: 0.22em; text-transform: uppercase; margin-bottom: 28px;
+}
+.s10-club    .s10-side-label { color: var(--blue); }
+.s10-country .s10-side-label { color: var(--gold); }
+.s10-list { list-style: none; }
+.s10-list li {
+    font-family: var(--sans-body); font-size: 27px;
+    line-height: 1.58; margin-bottom: 18px;
+    padding-left: 28px; position: relative;
+    color: var(--w85);
+}
+.s10-club    .s10-list li::before { content: '▸'; position: absolute; left: 0; color: var(--blue); }
+.s10-country .s10-list li::before { content: '▸'; position: absolute; left: 0; color: var(--gold); }
+.s10-note {
+    position: absolute; bottom: 76px; left: 96px;
+    font-family: var(--sans-body); font-size: 24px;
+    color: var(--w60); font-style: italic;
+}
+
+/* ================================================
+   SLIDE 11 — MONEY MACHINE (FULL REDESIGN)
+================================================ */
+.s11-headline {
+    position: absolute; top: 70px; left: 96px; width: 1300px;
+    font-family: var(--sans-hed); font-size: 80px; font-weight: 800;
+    line-height: 1.0; color: var(--white); text-transform: uppercase;
+}
+.s11-layout {
+    position: absolute; top: 242px; left: 96px; right: 96px; bottom: 120px;
+    display: flex; align-items: center; gap: 0;
+}
+.s11-income, .s11-host {
+    width: 530px; flex-shrink: 0;
+    display: flex; flex-direction: column; gap: 22px; justify-content: center;
+}
+.s11-income-card, .s11-host-card {
+    padding: 26px 30px;
+}
+.s11-income-card {
+    background: rgba(30,168,104,0.09);
+    border-left: 5px solid var(--green-acc);
+}
+.s11-income-label {
+    font-family: var(--sans-hed); font-size: 22px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--green-acc); margin-bottom: 6px;
+}
+.s11-income-sub {
+    font-family: var(--sans-body); font-size: 20px; color: var(--w60);
+}
+.s11-host-card {
+    background: rgba(240,184,48,0.09);
+    border-left: 5px solid var(--gold);
+}
+.s11-host-label {
+    font-family: var(--sans-hed); font-size: 22px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 6px;
+}
+.s11-host-sub {
+    font-family: var(--sans-body); font-size: 20px; color: var(--w60);
+}
+.s11-arrow-wrap {
+    width: 76px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+}
+.s11-arrow-green, .s11-arrow-amber {
+    width: 50px; height: 4px; position: relative;
+}
+.s11-arrow-green { background: var(--green-acc); }
+.s11-arrow-amber { background: var(--gold); }
+.s11-arrow-green::after, .s11-arrow-amber::after {
+    content: ''; position: absolute; right: -10px; top: 50%;
+    transform: translateY(-50%);
+    border: 9px solid transparent;
+}
+.s11-arrow-green::after { border-left-color: var(--green-acc); }
+.s11-arrow-amber::after { border-left-color: var(--gold); }
+.s11-center {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+}
+.s11-center-panel {
+    width: 100%;
+    background: rgba(0,6,18,0.65);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 44px 36px; text-align: center;
+}
+.s11-fifa-name {
+    font-family: var(--sans-hed); font-size: 110px; font-weight: 900;
+    color: var(--white); text-transform: uppercase;
+    letter-spacing: 0.05em; line-height: 1; margin-bottom: 14px;
+}
+.s11-revenue {
+    font-family: var(--sans-hed); font-size: 44px; font-weight: 700;
+    color: var(--gold); letter-spacing: 0.02em; margin-bottom: 6px;
+}
+.s11-revenue-sub {
+    font-family: var(--sans-body); font-size: 20px; color: var(--w60);
+    margin-bottom: 18px;
+}
+.s11-nonprofit {
+    display: inline-block;
+    font-family: var(--sans-hed); font-size: 16px; font-weight: 700;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--w35);
+    border: 1px solid rgba(255,255,255,0.15); padding: 6px 14px;
+}
+.s11-note {
+    position: absolute; bottom: 68px; left: 96px; right: 96px;
+    text-align: center;
+    font-family: var(--sans-body); font-size: 22px;
+    color: var(--w60); font-style: italic;
+}
+
+/* ================================================
+   SLIDE 12 — QATAR (DEEP NAVY)
+================================================ */
+#s12 { background: var(--bg-deep) !important; }
+.s12-headline {
+    position: absolute; top: 96px; left: 96px; width: 1500px;
+    font-family: var(--sans-hed); font-size: 86px; font-weight: 900;
+    line-height: 0.97; color: var(--gold); text-transform: uppercase;
+}
+.s12-bars {
+    position: absolute; top: 330px; left: 96px; width: 880px;
+}
+.s12-bar-row { display: flex; align-items: center; margin-bottom: 26px; }
+.s12-bar-label {
+    font-family: var(--sans-body); font-size: 22px; font-weight: 600;
+    color: var(--w60); width: 260px; flex-shrink: 0;
+}
+.s12-bar-track {
+    flex: 1; height: 56px; background: rgba(255,255,255,0.06); position: relative;
+}
+.s12-bar-fill {
+    height: 100%; position: absolute; left: 0; top: 0;
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 1.1s var(--ease) 0.45s;
+    display: flex; align-items: center; justify-content: flex-end;
+    padding-right: 14px;
+}
+.slide.visible .s12-bar-fill { transform: scaleX(1); }
+.s12-bar-fill.stadiums { background: var(--green-acc); width: 4.7%; }
+.s12-bar-fill.infra    { background: rgba(255,255,255,0.35); width: 95.3%; }
+.s12-bar-fill.total    { background: var(--gold); opacity: 0.8; width: 100%; }
+.s12-bar-val {
+    font-family: var(--sans-hed); font-size: 26px; font-weight: 700;
+    color: var(--white); margin-left: 16px; width: 110px; flex-shrink: 0;
+}
+.s12-bars-sub {
+    font-family: var(--sans-body); font-size: 18px; color: var(--w35);
+    font-style: italic; margin-top: 8px;
+}
+.s12-gdp {
+    position: absolute; top: 330px; right: 96px; width: 720px;
+    padding: 40px;
+    border: 2px solid rgba(240,184,48,0.25);
+    background: rgba(240,184,48,0.05);
+}
+.s12-gdp-title {
+    font-family: var(--sans-hed); font-size: 20px; font-weight: 700;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 18px;
+}
+.s12-gdp-stat {
+    font-family: var(--sans-hed); font-size: 34px; font-weight: 700;
+    color: var(--white); margin-bottom: 14px; line-height: 1.2;
+}
+.s12-gdp-body {
+    font-family: var(--sans-body); font-size: 22px;
+    color: var(--w60); line-height: 1.6;
+}
+.s12-footer {
+    position: absolute; bottom: 88px; left: 96px; right: 96px;
+    font-family: var(--sans-body); font-size: 22px;
+    color: var(--gold); font-style: italic; opacity: 0.75;
+}
+
+/* ================================================
+   SLIDE 13 — SHADOW ECONOMY (3 CARDS)
+================================================ */
+.s13-headline {
+    position: absolute; top: 70px; left: 96px; width: 1500px;
+    font-family: var(--sans-hed); font-size: 76px; font-weight: 800;
+    line-height: 1.0; color: var(--white); text-transform: uppercase;
+}
+.s13-grid {
+    position: absolute; top: 248px; left: 96px; width: 1728px;
+    display: flex; gap: 44px;
+}
+.s13-card {
+    flex: 1; padding: 44px 42px;
+    background: rgba(255,255,255,0.03);
+    border-top: 5px solid var(--gold);
+}
+.s13-card:nth-child(2) { border-top-color: var(--green-acc); }
+.s13-card:nth-child(3) { border-top-color: var(--blue); }
+.s13-icon { width: 60px; height: 60px; margin-bottom: 24px; position: relative; }
+.icon-demand { display: flex; align-items: flex-end; gap: 7px; justify-content: center; }
+.icon-demand span { width: 12px; background: var(--gold); border-radius: 2px 2px 0 0; }
+.icon-demand span:nth-child(1) { height: 24px; }
+.icon-demand span:nth-child(2) { height: 38px; }
+.icon-demand span:nth-child(3) { height: 52px; }
+.icon-demand span:nth-child(4) { height: 60px; }
+.icon-shield {
+    background: var(--green-acc);
+    clip-path: polygon(50% 0%, 100% 16%, 100% 58%, 50% 100%, 0% 58%, 0% 16%);
+    width: 52px; height: 56px; margin-top: 2px;
+}
+.icon-coin {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--blue); display: flex;
+    align-items: center; justify-content: center;
+    font-family: var(--sans-hed); font-size: 28px; font-weight: 900; color: white;
+}
+.s13-card-title {
+    font-family: var(--sans-hed); font-size: 22px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--white); margin-bottom: 14px;
+}
+.s13-card-body {
+    font-family: var(--sans-body); font-size: 25px;
+    color: var(--w60); line-height: 1.65;
+}
+
+/* ================================================
+   SLIDE 14 — CONCLUSION (CLIMAX)
+================================================ */
+.s14-glow {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 65% 45%, rgba(240,184,48,0.28) 0%, rgba(240,184,48,0.10) 35%, transparent 62%);
+    pointer-events: none;
+}
+.s14-sun {
+    position: absolute; right: -100px; top: 50%;
+    transform: translateY(-50%);
+    width: 600px; height: 600px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(240,184,48,0.22) 0%, rgba(240,184,48,0.08) 40%, transparent 72%);
+    border: 2px solid rgba(240,184,48,0.15);
+    pointer-events: none;
+}
+.s14-sun::before {
+    content: ''; position: absolute; inset: 100px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(240,184,48,0.30) 0%, transparent 70%);
+    border: 1px solid rgba(240,184,48,0.12);
+}
+.s14-sun::after {
+    content: ''; position: absolute; inset: 210px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(240,184,48,0.40) 0%, transparent 70%);
+}
+.s14-andyet {
+    position: absolute; top: 136px; left: 96px;
+    font-family: var(--sans-hed); font-size: 28px; font-weight: 700;
+    letter-spacing: 0.32em; text-transform: uppercase; color: var(--gold);
+}
+.s14-headline {
+    position: absolute; top: 192px; left: 96px; width: 1360px;
+    font-family: var(--sans-hed); font-size: 178px; font-weight: 900;
+    line-height: 0.88; text-transform: uppercase; color: var(--gold);
+    letter-spacing: 0.01em;
+}
+.s14-body {
+    position: absolute; top: 558px; left: 96px; width: 1100px;
+    font-family: var(--sans-body); font-size: 31px;
+    color: var(--w85); line-height: 1.7;
+}
+.s14-final {
+    position: absolute; bottom: 100px; left: 96px;
+    font-family: var(--sans-body); font-size: 26px;
+    color: var(--w60); font-style: italic;
+}
+
+/* ================================================
+   SLIDE 15 — BIBLIOGRAPHY (SINGLE, 3 COLUMNS)
+================================================ */
+.bib-headline {
+    position: absolute; top: 50px; left: 96px;
+    font-family: var(--sans-hed); font-size: 52px; font-weight: 800;
+    color: var(--white); text-transform: uppercase; letter-spacing: 0.04em;
+}
+.bib-rule {
+    position: absolute; top: 126px; left: 96px;
+    width: 80px; height: 4px; background: var(--gold);
+}
+.bib-content {
+    position: absolute; top: 162px; left: 96px; right: 96px; bottom: 56px;
+    columns: 3; column-gap: 56px; overflow: hidden;
+}
+.bib-entry {
+    font-family: var(--sans-body); font-size: 18px;
+    color: var(--w85); line-height: 1.45; margin-bottom: 16px;
+    break-inside: avoid;
+}
+.bib-entry a { color: var(--gold); word-break: break-all; font-size: 16px; }
+.bib-entry em { font-style: italic; }
+
+    </style>
+</head>
+<body>
+
+<div class="deck-viewport">
+<main class="deck-stage" id="deckStage">
+
+<!-- ============================================================
+     SLIDE 1 — TITLE
+     SPEAKER NOTES: Hi everyone. I'm Martina Ormeño Reyes, and today we're
+     going beneath the beautiful game. The World Cup is the most-watched sporting
+     event on earth — roughly 3.5 billion people tuned in for 2022. But the spectacle
+     we see on television — the anthems, the tears, the golden trophies — sits on top
+     of something far more complex: political power, billions of dollars changing
+     hands, and questions about who really benefits. This presentation asks those
+     questions honestly, and then answers why the World Cup still matters anyway.
+     ============================================================ -->
+<section class="slide active" id="s1">
+    <div class="texture"></div>
+    <div class="s1-glow-gold"></div>
+    <div class="s1-glow-blue"></div>
+    <div class="top-band"></div>
+    <div class="left-rule"></div>
+    <div class="s1-globe-outer"></div>
+    <div class="s1-globe-mid"></div>
+    <div class="s1-globe-inner"></div>
+    <div class="s1-dot-grid" aria-hidden="true">
+        <div class="d-dot dr"></div><div class="d-dot db"></div><div class="d-dot dw"></div><div class="d-dot dg"></div><div class="d-dot dgn"></div><div class="d-dot dk"></div>
+        <div class="d-dot dw"></div><div class="d-dot dr"></div><div class="d-dot db"></div><div class="d-dot dw"></div><div class="d-dot dr"></div><div class="d-dot dg"></div>
+        <div class="d-dot dgn"></div><div class="d-dot dw"></div><div class="d-dot dg"></div><div class="d-dot db"></div><div class="d-dot dw"></div><div class="d-dot dr"></div>
+        <div class="d-dot db"></div><div class="d-dot dg"></div><div class="d-dot dr"></div><div class="d-dot dgn"></div><div class="d-dot dk"></div><div class="d-dot dw"></div>
+        <div class="d-dot dw"></div><div class="d-dot dgn"></div><div class="d-dot dw"></div><div class="d-dot dr"></div><div class="d-dot db"></div><div class="d-dot dg"></div>
+        <div class="d-dot dr"></div><div class="d-dot dw"></div><div class="d-dot dg"></div><div class="d-dot dw"></div><div class="d-dot dgn"></div><div class="d-dot db"></div>
+        <div class="d-dot dg"></div><div class="d-dot db"></div><div class="d-dot dr"></div><div class="d-dot dw"></div><div class="d-dot dk"></div><div class="d-dot dgn"></div>
+        <div class="d-dot dw"></div><div class="d-dot dr"></div><div class="d-dot db"></div><div class="d-dot dg"></div><div class="d-dot dw"></div><div class="d-dot dr"></div>
+    </div>
+    <p class="s1-eyebrow reveal d1">ILV English</p>
+    <h1 class="s1-title reveal d2">
+        <span class="s1-t1">Beneath</span>
+        <span class="s1-t2">the Beautiful</span>
+        <span class="s1-t3">Game</span>
+    </h1>
+    <div class="s1-rule reveal d3"></div>
+    <p class="s1-subtitle reveal d4">Power, Profit, and the Unbreakable Spirit of the World Cup</p>
+    <p class="s1-author reveal d5">Martina Ormeño Reyes</p>
+</section>
+
+<!-- ============================================================
+     SLIDE 2 — HOOK / THESIS
+     SPEAKER NOTES: Picture a kid at a corner kiosk, carefully peeling a golden
+     Messi sticker onto a worn cardboard album. Picture homework done over a
+     Coca-Cola bottle printed with a player's face. Shakira's "Waka Waka" on
+     repeat in every language. For one month every four years, the whole world
+     shares the same heartbeat. But my essay asks: what hides behind all of that?
+     The answer is both uncomfortable and hopeful. The World Cup is a global machine
+     of political power, corporate profit, and constructed national identity. And yet,
+     in spite of — or because of — all of that, it creates real, documented human unity.
+     That tension is what this presentation is about.
+     ============================================================ -->
+<section class="slide" id="s2">
+    <div class="left-rule"></div>
+    <div class="s2-deco" aria-hidden="true">?</div>
+    <h2 class="s2-headline reveal d1">A Kid at the Kiosk.<br>A Golden Sticker.<br>The Whole World Singing.</h2>
+    <div class="s2-rule reveal d2"></div>
+    <p class="s2-question reveal d3">Behind the joy, the jerseys, and the shared screens: who holds the power? Who profits? Who pays the price?</p>
+    <div class="s2-thesis reveal d4">
+        The World Cup is a global apparatus of political power, corporate profit, and constructed identity. And still: its capacity to dissolve human barriers is its most enduring truth.
+    </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 3 — HOW THE TOURNAMENT WORKS
+     SPEAKER NOTES: Before the politics and the money, here's how it actually works.
+     About 200 national teams enter qualifying rounds that run for roughly three years.
+     For 2026 — the next edition — 48 of them advance to the tournament, up from
+     the 32-team format used since 1998. The host nation gets an automatic spot. In
+     the group stage, teams play in groups of four. A win is worth 3 points, a draw 1,
+     and a loss zero. The top two in each group advance to a single-elimination
+     knockout round, where one bad game ends your campaign. From there it's
+     quarterfinals, semis, and a final. Extra time and penalties if it's level. One
+     winner. The simplicity of that format is part of why a billion people watch.
+     ============================================================ -->
+<section class="slide" id="s3">
+    <div class="left-rule"></div>
+    <p class="slide-label reveal d1">The Game</p>
+    <h2 class="s3-headline reveal d2">From 200 Nations to One Champion</h2>
+
+    <div class="funnel-wrap">
+        <div class="funnel-row reveal d3">
+            <div class="funnel-block fb1">~200 Nations Enter Qualifying</div>
+        </div>
+        <div class="funnel-arr reveal d3"></div>
+        <div class="funnel-row reveal d4">
+            <div class="funnel-block fb2">48 Teams Qualify (2026)</div>
+        </div>
+        <div class="funnel-arr reveal d4"></div>
+        <div class="funnel-row reveal d5">
+            <div class="funnel-block fb3">12 Groups of 4</div>
+        </div>
+        <div class="funnel-arr reveal d5"></div>
+        <div class="funnel-row reveal d5">
+            <div class="funnel-block fb4">Knockout Rounds</div>
+        </div>
+        <div class="funnel-arr reveal d5"></div>
+        <div class="funnel-row reveal d6">
+            <div class="funnel-block fb5">1 Champion</div>
+        </div>
+    </div>
+
+    <div class="pts-wrap">
+        <p class="pts-title reveal d3">Group Stage Points</p>
+        <div class="pts-row pts-win reveal d4">
+            <span class="pts-label">Win</span>
+            <span class="pts-num">3</span>
+            <span class="pts-unit">pts</span>
+        </div>
+        <div class="pts-row pts-draw reveal d5">
+            <span class="pts-label">Draw</span>
+            <span class="pts-num">1</span>
+            <span class="pts-unit">pt</span>
+        </div>
+        <div class="pts-row pts-loss reveal d6">
+            <span class="pts-label">Loss</span>
+            <span class="pts-num">0</span>
+            <span class="pts-unit">pts</span>
+        </div>
+        <div class="s3-prize reveal d6">
+            <p class="s3-prize-label">FIFA Prize Pool 2022</p>
+            <p class="s3-prize-total">$440M</p>
+            <p class="s3-prize-sub">Winner: $42M &nbsp;|&nbsp; Group exit: $9M</p>
+        </div>
+    </div>
+
+    <p class="s3-note reveal d6">2026 expands to 48 teams for the first time; host nations (USA, Canada, Mexico) qualify automatically.</p>
+</section>
+
+<!-- ============================================================
+     SLIDE 4 — ORIGINS
+     SPEAKER NOTES: The World Cup started as an act of rebellion. In the early
+     twentieth century, the Olympics only allowed amateur athletes — professionals
+     were banned. FIFA president Jules Rimet thought that was absurd: the best
+     footballers in the world were pros. So in 1928 he broke away and created a
+     separate tournament. The first World Cup was held in Uruguay in 1930. The Great
+     Depression meant teams had to sail across the Atlantic Ocean for weeks, and only
+     13 nations bothered to make the trip. There was even a dispute in the final over
+     which ball to use — so they used each team's ball for one half. Uruguay won
+     on home soil. From 13 teams in 1930, the tournament grew to 16, then 32 by 1998,
+     and now expands to 48 for 2026.
+     ============================================================ -->
+<section class="slide" id="s4">
+    <div class="left-rule"></div>
+    <p class="slide-label reveal d1">Origins</p>
+    <h2 class="s4-headline reveal d2">It Began as a Revolt</h2>
+
+    <div class="s4-bullets">
+        <div class="s4-item reveal d3">
+            <div class="s4-dot"></div>
+            <p class="s4-text">The Olympics banned professional players. Jules Rimet refused to accept it.</p>
+        </div>
+        <div class="s4-item reveal d4">
+            <div class="s4-dot"></div>
+            <p class="s4-text">FIFA broke away in 1928. First World Cup: Uruguay, 1930.</p>
+        </div>
+        <div class="s4-item reveal d5">
+            <div class="s4-dot"></div>
+            <p class="s4-text">Only 13 nations came: Great Depression, a month-long Atlantic crossing, a disputed match ball.</p>
+        </div>
+        <div class="s4-item reveal d6">
+            <div class="s4-dot"></div>
+            <p class="s4-text">Uruguay won at home. A nation danced in the streets.</p>
+        </div>
+    </div>
+
+    <div class="s4-tl reveal d5">
+        <div class="s4-tl-line"></div>
+        <div class="s4-tl-events">
+            <div class="s4-ev">
+                <span class="s4-ev-year">1928</span>
+                <div class="s4-ev-dot"></div>
+                <span class="s4-ev-desc">Rimet breaks from Olympics; FIFA creates tournament</span>
+            </div>
+            <div class="s4-ev">
+                <span class="s4-ev-year">1930</span>
+                <div class="s4-ev-dot"></div>
+                <span class="s4-ev-desc">First World Cup, Uruguay. 13 teams.</span>
+            </div>
+            <div class="s4-ev">
+                <span class="s4-ev-year">1998</span>
+                <div class="s4-ev-dot"></div>
+                <span class="s4-ev-desc">Format reaches 32 teams</span>
+            </div>
+            <div class="s4-ev">
+                <span class="s4-ev-year">2026</span>
+                <div class="s4-ev-dot"></div>
+                <span class="s4-ev-desc">Expands to 48 teams (Al Jazeera, 2026)</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 5 — SPORTSWASHING (CRIMSON INVERTED)
+     SPEAKER NOTES: Now for the shadow behind the stadium lights. There's a word
+     for what we're about to talk about: sportswashing. It's when an authoritarian
+     government — or any regime with something to hide — uses a major sporting
+     event to distract from abuses, deflect international criticism, and rebuild its
+     image on the world stage. The game becomes a PR operation. The crowds, the
+     cameras, the flags: all of it drowns out the difficult questions. This is not a
+     new phenomenon, and it is not accidental. The next three slides trace how it's
+     been done, and how the same power has sometimes been turned the other way,
+     against wrongdoing.
+     ============================================================ -->
+<section class="slide" id="s5">
+    <div class="s5-left-rule"></div>
+    <div class="s5-big-s" aria-hidden="true">S</div>
+    <p class="s5-label reveal d1">Power</p>
+    <h2 class="s5-headline reveal d2">The Shadow Behind<br>the Stadium Lights</h2>
+    <p class="s5-term reveal d3">Sportswashing</p>
+    <p class="s5-pos reveal d3">(noun)</p>
+    <p class="s5-definition reveal d4">Using a major sporting event to distract from human rights abuses, silence critics, and polish an authoritarian image on the world stage.</p>
+    <p class="s5-kicker reveal d5">It is not new. And it is not accidental.</p>
+</section>
+
+<!-- ============================================================
+     SLIDE 6 — 1934 & 1978
+     SPEAKER NOTES: Two of the clearest examples are separated by 44 years.
+     In 1934, Benito Mussolini staged Italy's home World Cup as a showcase for
+     Italian fascism. Italy won — amid controversy over referee decisions — and
+     the squad performed the Roman salute before matches. Worth noting: the
+     Roman salute was common across several national teams in that era; what
+     Mussolini did was weaponize an existing custom and make it his propaganda.
+     The 1978 case is even more chilling. Argentina's military junta, which had
+     seized power in 1976 and was disappearing thousands of dissidents, hosted
+     the tournament. The ESMA detention center — where prisoners were tortured —
+     was located just blocks from the Monumental stadium. According to the ESMA
+     museum, prisoners could hear the crowds cheering.
+     ============================================================ -->
+<section class="slide" id="s6">
+    <div class="left-rule"></div>
+    <p class="slide-label reveal d1">Propaganda</p>
+    <h2 class="s6-headline reveal d2">When the Game Hid the Crime</h2>
+
+    <div class="s6-panels">
+        <div class="s6-panel s6-panel-gold reveal d3">
+            <p class="s6-yr">1934</p>
+            <p class="s6-city">Rome, Italy</p>
+            <p class="s6-body">Mussolini staged Italy's home victory as a showcase for fascist Italy. The squad gave the Roman salute before matches. A customary greeting of the era, Mussolini weaponized it for propaganda. Referees were pressured; Italy won.</p>
+            <p class="s6-kicker">A sporting triumph engineered to serve a regime.</p>
+        </div>
+        <div class="s6-panel s6-panel-red reveal d4">
+            <p class="s6-yr">1978</p>
+            <p class="s6-city">Buenos Aires, Argentina</p>
+            <p class="s6-body">The military junta, having seized power in 1976, hosted the World Cup while disappearing thousands of dissidents. The ESMA torture center sat blocks from the Monumental stadium. Prisoners could hear the crowds cheering.</p>
+            <p class="s6-kicker">Seventy thousand fans. Silence on the other side of the wall.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 7 — SOUTH AFRICA & RUSSIA
+     SPEAKER NOTES: But FIFA has also used exclusion as a form of justice. South
+     Africa is the most sustained example. FIFA suspended South Africa in 1961 over
+     apartheid — the system of racial segregation enforced by the white-minority
+     government. It's worth being precise: the exclusion wasn't a single unbroken
+     ban. South Africa was briefly reinstated in 1963, re-suspended in 1964, formally
+     expelled in 1976, and readmitted only in 1992 as apartheid was dismantled.
+     Across roughly three decades, from 1961 to 1992. More recently: FIFA and UEFA
+     suspended Russia in February 2022, following the invasion of Ukraine, "until
+     further notice." That suspension has been extended through the 2026 cycle. The
+     question this raises — and it's worth sitting with — is why some nations at war
+     get sanctioned and others don't.
+     ============================================================ -->
+<section class="slide" id="s7">
+    <div class="left-rule"></div>
+    <p class="slide-label reveal d1">Justice</p>
+    <h2 class="s7-headline reveal d2">The Same Power, Turned Toward Justice</h2>
+
+    <div class="s7-cols">
+        <div class="s7-col reveal d3">
+            <p class="s7-col-name">South Africa</p>
+            <p class="s7-col-period">1961 to 1992</p>
+            <p class="s7-col-body">FIFA excluded South Africa over apartheid across roughly three decades. Not a single unbroken ban: suspended 1961, briefly reinstated 1963, re-suspended 1964, expelled 1976, readmitted 1992 as apartheid ended.</p>
+        </div>
+        <div class="s7-col reveal d4">
+            <p class="s7-col-name">Russia</p>
+            <p class="s7-col-period">2022, ongoing</p>
+            <p class="s7-col-body">FIFA and UEFA suspended Russia in February 2022, following the invasion of Ukraine. "Until further notice" — extended through the 2026 cycle. The word is "suspended," not permanently banned.</p>
+        </div>
+    </div>
+
+    <div class="s7-tl reveal d5">
+        <div class="s7-tl-line"></div>
+        <div class="s7-tl-events">
+            <div class="s7-ev">
+                <span class="s7-ev-year">1934</span>
+                <div class="s7-ev-dot"></div>
+                <span class="s7-ev-desc">Mussolini, Rome</span>
+            </div>
+            <div class="s7-ev">
+                <span class="s7-ev-year">1961–1992</span>
+                <div class="s7-ev-dot"></div>
+                <span class="s7-ev-desc">South Africa excluded for apartheid</span>
+            </div>
+            <div class="s7-ev">
+                <span class="s7-ev-year">1978</span>
+                <div class="s7-ev-dot"></div>
+                <span class="s7-ev-desc">Argentina junta, Buenos Aires</span>
+            </div>
+            <div class="s7-ev">
+                <span class="s7-ev-year">2022</span>
+                <div class="s7-ev-dot"></div>
+                <span class="s7-ev-desc">Russia suspended, Ukraine invasion</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 8 — MUSIC & UNITY
+     SPEAKER NOTES: Now let's turn from the shadow to something genuinely
+     beautiful. The 2010 World Cup in South Africa introduced "Waka Waka (This
+     Time for Africa)" by Shakira as the official tournament anthem. It became
+     one of the best-selling World Cup songs ever. People who didn't share a
+     language, a religion, a politics — shared those lyrics. For one summer, an
+     enormous fraction of humanity was humming the same melody. This is the pivot
+     point in my argument. The same apparatus that enables sportswashing and
+     financial exploitation is also capable of producing something no government can
+     manufacture: genuine, spontaneous, cross-cultural joy.
+     ============================================================ -->
+<section class="slide" id="s8">
+    <div class="left-rule"></div>
+    <div class="s8-glow"></div>
+    <div class="s8-ghost" aria-hidden="true">WAKA WAKA</div>
+    <div class="s8-rings" aria-hidden="true">
+        <div class="s8-ring"></div>
+        <div class="s8-ring"></div>
+        <div class="s8-ring"></div>
+        <div class="s8-ring"></div>
+        <div class="s8-ring"></div>
+        <div class="s8-ring"></div>
+        <div class="s8-ring-center"></div>
+    </div>
+    <p class="slide-label reveal d1">Unity</p>
+    <h2 class="s8-headline reveal d2">One Rhythm,<br>One World</h2>
+    <p class="s8-song reveal d3">"Waka Waka (This Time for Africa)"</p>
+    <p class="s8-body reveal d4">Shakira's official anthem for the 2010 South Africa World Cup got billions of people singing across every division. In a tense, divided world, a song created a shared moment. No government could have manufactured that.</p>
+    <p class="s8-stat reveal d5">The World Cup generates cultural unity that outlasts the tournament itself.</p>
+</section>
+
+<!-- ============================================================
+     SLIDE 9 — LEGENDS
+     SPEAKER NOTES: The World Cup makes legends. In the 1986 quarterfinal against
+     England, Diego Maradona scored two of the most famous goals ever within four
+     minutes of each other. The first — punched in with his fist, then famously
+     attributed to "the hand of God." The second — a 60-meter solo run past five
+     defenders, voted the goal of the century. The same man, the same game, four
+     minutes apart: one act of cheating, one act of genius. That's the World Cup.
+     Cristiano Ronaldo's story is about social mobility: born in poverty in Madeira,
+     he became arguably the best player alive and the face of a global sport. Zinedine
+     Zidane — France's best ever — headbutted Marco Materazzi in the 2006 final
+     and was sent off. Greatness cracked under pressure, on the biggest stage. These
+     stories are why people watch.
+     ============================================================ -->
+<section class="slide" id="s9">
+    <div class="left-rule"></div>
+    <p class="slide-label reveal d1">Legends</p>
+    <h2 class="s9-headline reveal d2">Three Moments. One Tournament.</h2>
+
+    <div class="s9-panels">
+        <!-- MARADONA -->
+        <div class="s9-panel s9-panel-1 reveal d3">
+            <p class="s9-player">Maradona</p>
+            <p class="s9-year">Mexico City, 1986</p>
+            <div class="s9-mini-tl">
+                <div class="s9-mini-line"></div>
+                <div class="s9-mini-fill"></div>
+                <div class="s9-mini-events">
+                    <div class="s9-mini-ev">
+                        <span class="s9-mini-ev-time">46th min.</span>
+                        <div class="s9-mini-ev-dot"></div>
+                        <span class="s9-mini-ev-name">The Hand of God</span>
+                    </div>
+                    <div class="s9-mini-ev">
+                        <span class="s9-mini-ev-time">51st min.</span>
+                        <div class="s9-mini-ev-dot"></div>
+                        <span class="s9-mini-ev-name">Goal of the Century</span>
+                    </div>
+                </div>
+            </div>
+            <p class="s9-panel-body">Fist, then genius. Cheating and brilliance in four minutes. The World Cup holds both without resolving them.</p>
+        </div>
+        <!-- RONALDO -->
+        <div class="s9-panel s9-panel-2 reveal d4">
+            <p class="s9-player">Ronaldo</p>
+            <p class="s9-year">The Journey</p>
+            <p class="s9-panel-body">Born in poverty in Madeira. Became arguably the best player alive and the most-watched athlete on earth. Football as social mobility, made visible on the biggest stage.</p>
+        </div>
+        <!-- ZIDANE -->
+        <div class="s9-panel s9-panel-3 reveal d5">
+            <p class="s9-player">Zidane</p>
+            <p class="s9-year">Berlin, 2006 Final</p>
+            <p class="s9-panel-body">Headbutt. Red card. France's greatest player, gone in the final minutes. Greatness cracking under pressure, on the biggest stage in sport.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 10 — ELIGIBILITY
+     SPEAKER NOTES: One thing that makes the World Cup genuinely different from
+     club football is that you can't buy your way in. In club football — the Premier
+     League, La Liga — billionaires can purchase entire squads. But a national team
+     runs on strict eligibility rules: you play for the country of your birth, your
+     parents' birth, or the country where you have residency, subject to FIFA
+     regulations. You cannot transfer your national allegiance freely after you've
+     played one competitive game. This creates real debates about identity. Michael
+     Olise chose to represent France rather than England, where he grew up, because
+     his father is from Ivory Coast and his mother is of Chinese-French heritage.
+     Those choices spark conversations about what national identity means in a
+     globalized world, and who gets to claim it.
+     ============================================================ -->
+<section class="slide" id="s10">
+    <div class="left-rule"></div>
+    <p class="slide-label reveal d1">Identity</p>
+    <h2 class="s10-headline reveal d2">You Can't Buy a National Team</h2>
+
+    <div class="s10-contrast reveal d3">
+        <div class="s10-side s10-club">
+            <p class="s10-side-label">Club Football</p>
+            <ul class="s10-list">
+                <li>Billionaires purchase squads at will</li>
+                <li>Players transfer freely for money</li>
+                <li>No connection to heritage required</li>
+                <li>Identity is a brand, not a birthright</li>
+            </ul>
+        </div>
+        <div class="s10-divider"></div>
+        <div class="s10-side s10-country">
+            <p class="s10-side-label">National Team</p>
+            <ul class="s10-list">
+                <li>Strict eligibility: birth, parents, residency</li>
+                <li>Allegiance locked after first competitive game</li>
+                <li>Sparks real debates about belonging</li>
+                <li>Michael Olise chose France: a question of identity</li>
+            </ul>
+        </div>
+    </div>
+
+    <p class="s10-note reveal d4">The national team remains one of the last places where money cannot simply buy success.</p>
+</section>
+
+<!-- ============================================================
+     SLIDE 11 — MONEY MACHINE
+     SPEAKER NOTES: Now for the financial architecture. FIFA is a nonprofit
+     organization, but it operates more like a global media corporation. From the
+     2022 Qatar cycle alone, FIFA generated around 7.5 billion dollars in revenue —
+     almost entirely from two sources: broadcasting rights, which broadcasters in
+     every country pay to screen the tournament, and sponsorship from corporations
+     like Adidas, Coca-Cola, and Hyundai. FIFA pays no federal income taxes because
+     it is registered in Switzerland as a nonprofit. The host nation, meanwhile, foots
+     the bill for stadiums, infrastructure, security, and transport — and often ends
+     up with expensive facilities it can't fill after the tournament. The financial
+     flow goes toward FIFA; the financial risk stays with the host.
+     ============================================================ -->
+<section class="slide" id="s11">
+    <div class="left-rule"></div>
+    <p class="slide-label reveal d1">Economics</p>
+    <h2 class="s11-headline reveal d2">Who Really Wins Financially</h2>
+
+    <div class="s11-layout reveal d3">
+        <div class="s11-income">
+            <div class="s11-income-card">
+                <p class="s11-income-label">Broadcasting Rights</p>
+                <p class="s11-income-sub">Paid by networks in every country</p>
+            </div>
+            <div class="s11-income-card">
+                <p class="s11-income-label">Sponsorship</p>
+                <p class="s11-income-sub">Adidas, Coca-Cola, Hyundai and others</p>
+            </div>
+        </div>
+
+        <div class="s11-arrow-wrap">
+            <div class="s11-arrow-green"></div>
+        </div>
+
+        <div class="s11-center">
+            <div class="s11-center-panel">
+                <p class="s11-fifa-name">FIFA</p>
+                <p class="s11-revenue">~$7.5B</p>
+                <p class="s11-revenue-sub">Revenue, 2022 cycle</p>
+                <span class="s11-nonprofit">Tax-exempt nonprofit</span>
+            </div>
+        </div>
+
+        <div class="s11-arrow-wrap">
+            <div class="s11-arrow-amber"></div>
+        </div>
+
+        <div class="s11-host">
+            <div class="s11-host-card">
+                <p class="s11-host-label">Infrastructure Debt</p>
+                <p class="s11-host-sub">Stadiums, transport, security, housing</p>
+            </div>
+            <div class="s11-host-card">
+                <p class="s11-host-label">White Elephant Risk</p>
+                <p class="s11-host-sub">Expensive facilities often unused after the tournament</p>
+            </div>
+        </div>
+    </div>
+
+    <p class="s11-note reveal d4">Money flows to FIFA. Risk stays with the host.</p>
+</section>
+
+<!-- ============================================================
+     SLIDE 12 — QATAR BY THE NUMBERS (DEEP NAVY)
+     SPEAKER NOTES: Okay, so this is where the numbers get a little insane.
+     Qatar spent around 220 billion dollars over roughly twelve years, from 2010
+     to 2022, preparing to host. That makes it the most expensive World Cup ever —
+     about twenty times what Russia spent in 2018. Quick honesty check though:
+     that 220 billion is a contested, cumulative infrastructure figure, not an
+     audited single-event cost. Hassan Al-Thawadi, Qatar's World Cup CEO, put
+     the tournament-specific cost closer to 8 billion dollars, attributing the
+     rest to the country's long-term "National Vision 2030" plans. Of the total,
+     only about 10 billion went to the actual stadiums; the remaining 210 billion
+     built a metro system, a new airport, and a new city. Here's the key fact to
+     understand the scale: the 220 billion spend was roughly comparable to a full
+     year of Qatar's entire GDP. Qatar's nominal GDP was about 180 billion in 2021
+     and 236 billion in 2022 — the World Bank is the source. One more thing:
+     Qatar marketed the 2022 tournament as the first carbon-neutral World Cup.
+     Carbon Market Watch and, later, a Swiss regulator found that claim not credible.
+     That's greenwashing.
+     ============================================================ -->
+<section class="slide" id="s12">
+    <div class="left-rule"></div>
+    <p class="slide-label reveal d1">Qatar 2022</p>
+    <h2 class="s12-headline reveal d2">The Most Expensive<br>Show on Earth</h2>
+
+    <div class="s12-bars reveal d3">
+        <p style="font-family:var(--sans-hed);font-size:18px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--w35);margin-bottom:18px;">$220B Total Spend — Proportional Breakdown</p>
+        <div class="s12-bar-row">
+            <span class="s12-bar-label">Stadiums</span>
+            <div class="s12-bar-track">
+                <div class="s12-bar-fill stadiums"></div>
+            </div>
+            <span class="s12-bar-val">~$10B</span>
+        </div>
+        <div class="s12-bar-row">
+            <span class="s12-bar-label">Infrastructure</span>
+            <div class="s12-bar-track">
+                <div class="s12-bar-fill infra"></div>
+            </div>
+            <span class="s12-bar-val">~$210B</span>
+        </div>
+        <div class="s12-bar-row">
+            <span class="s12-bar-label">Total Spend</span>
+            <div class="s12-bar-track">
+                <div class="s12-bar-fill total"></div>
+            </div>
+            <span class="s12-bar-val">~$220B</span>
+        </div>
+        <p class="s12-bars-sub">Split per Hassan Al-Thawadi, Qatar's World Cup CEO. Officials put tournament-specific cost at ~$8B.</p>
+    </div>
+
+    <div class="s12-gdp reveal d4">
+        <p class="s12-gdp-title">Scale Check</p>
+        <p class="s12-gdp-stat">$220B spend: roughly one full year of Qatar's entire GDP</p>
+        <p class="s12-gdp-body">Qatar's nominal GDP: ~$180B (2021), ~$236B (2022). Source: World Bank. The $220B is spend, not GDP.</p>
+        <p class="s12-gdp-body" style="margin-top:14px;">Marketed as the first "carbon-neutral" World Cup. Carbon Market Watch and a Swiss regulator found the claim not credible.</p>
+    </div>
+
+    <p class="s12-footer reveal d5">Most expensive World Cup ever. ~20x Russia 2018. $10B for stadiums. The rest built a country.</p>
+</section>
+
+<!-- ============================================================
+     SLIDE 13 — THE SHADOW ECONOMY
+     SPEAKER NOTES: The World Cup doesn't just affect the host country. It creates
+     economic shockwaves everywhere. During match days, bars, supermarkets,
+     and hospitality businesses spike — and then drop off immediately after. On
+     the labor side: the well-documented case is the 1990s scandal in Sialkot,
+     Pakistan, where children were working in home-based piecework stitching
+     football balls — driven by structural poverty, not specifically by World Cup
+     deadlines. That led to the 1997 Atlanta Agreement between the ILO, UNICEF,
+     and FIFA. Monitors found essentially no child labor at stitching centers
+     after 1999. And betting: the 2022 World Cup broke global sports betting
+     records, partly driven by the new, legal US market. The match is now a
+     financial transaction for millions of viewers.
+     ============================================================ -->
+<section class="slide" id="s13">
+    <div class="left-rule"></div>
+    <p class="slide-label reveal d1">The Hidden Economy</p>
+    <h2 class="s13-headline reveal d2">What the Spectacle Doesn't Show You</h2>
+
+    <div class="s13-grid">
+        <div class="s13-card reveal d3">
+            <div class="s13-icon icon-demand">
+                <span></span><span></span><span></span><span></span>
+            </div>
+            <p class="s13-card-title">Consumer Rush</p>
+            <p class="s13-card-body">Bars, supermarkets, and hospitality spike on match days, then collapse immediately after. Demand shocks in every host city.</p>
+        </div>
+        <div class="s13-card reveal d4">
+            <div class="s13-icon">
+                <div class="icon-shield"></div>
+            </div>
+            <p class="s13-card-title">Labor: Sialkot</p>
+            <p class="s13-card-body">1990s: children stitched footballs in home-based piecework in Sialkot, Pakistan, driven by poverty. 1997 Atlanta Agreement (ILO, UNICEF, FIFA). Resolved at stitching centers by 1999.</p>
+        </div>
+        <div class="s13-card reveal d5">
+            <div class="s13-icon">
+                <div class="icon-coin">$</div>
+            </div>
+            <p class="s13-card-title">Sports Betting</p>
+            <p class="s13-card-body">2022 broke global sports betting records, partly driven by newly legal US market. Watching became a financial transaction for millions.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 14 — CONCLUSION
+     SPEAKER NOTES: So: where does all of this leave us? The World Cup is
+     imperfect. It has been a stage for propaganda, a machine for generating
+     profit, a cover for exploitation, and a source of environmental greenwashing.
+     None of that is small. But Jules Rimet's original vision was never really
+     about football alone. It was about building a ritual that could bring hostile
+     nations to the same table. And in that, weirdly, it keeps succeeding. Go back
+     to the kid with the golden Messi sticker. The shared jersey passed around a
+     living room full of people who agree on nothing else. The held breath before
+     the penalty. The tear of joy. These things are real. They exist alongside the
+     corruption and the politics, not instead of them. That tension is unresolved.
+     But the magic, I think, wins.
+     ============================================================ -->
+<section class="slide" id="s14">
+    <div class="left-rule"></div>
+    <div class="s14-glow"></div>
+    <div class="s14-sun" aria-hidden="true"></div>
+    <p class="slide-label reveal d1">Conclusion</p>
+    <p class="s14-andyet reveal d2">And Yet:</p>
+    <h2 class="s14-headline reveal d3">The Magic<br>Wins.</h2>
+    <p class="s14-body reveal d4">The golden sticker. The shared jersey. The held breath before the penalty. The tear of joy.</p>
+    <p class="s14-final reveal d5">Jules Rimet's vision, 1928. Still standing.</p>
+</section>
+
+<!-- ============================================================
+     SLIDE 15 — BIBLIOGRAPHY
+     SPEAKER NOTES: Sources. All available for review.
+     ============================================================ -->
+<section class="slide" id="s15">
+    <div class="left-rule"></div>
+    <h2 class="bib-headline reveal d1">Bibliography</h2>
+    <div class="bib-rule reveal d1"></div>
+    <div class="bib-content reveal d2">
+        <p class="bib-entry">"1934: Mussolini Pulls the Levers." <em>UEFA.com.</em> Union of European Football Associations. Accessed June 13, 2026. <a href="https://www.uefa.com/european-qualifiers/news/019c-0e6adb9fef90-ab94132361d1-1000--1934-mussolini-pulls-the-levers/">uefa.com</a></p>
+
+        <p class="bib-entry">"2022 World Cup Breaks Betting Records, Thanks in Part to US Growth." <em>iGaming Business,</em> 2023. <a href="https://igamingbusiness.com/sports-betting/2022-world-cup-breaks-betting-records-thanks-in-part-to-us-growth/">igamingbusiness.com</a></p>
+
+        <p class="bib-entry">Associated Press. "Qatar's World Cup Stadiums Cost Up to $10bn, Official Says." Reported via <em>Arabian Business,</em> 2017. <a href="https://www.arabianbusiness.com/gcc/qatar-s-world-cup-stadiums-cost-10bn-official-says-632410">arabianbusiness.com</a></p>
+
+        <p class="bib-entry">Craig, Matt. "The Money Behind the Most Expensive World Cup in History: Qatar 2022 by the Numbers." <em>Forbes,</em> November 19, 2022. <a href="https://www.forbes.com/sites/mattcraig/2022/11/19/the-money-behind-the-most-expensive-world-cup-in-history-qatar-2022-by-the-numbers/">forbes.com</a></p>
+
+        <p class="bib-entry">Dufrasne, Gilles. <em>Poor Tackling: Yellow Card for 2022 FIFA World Cup's Carbon Neutrality Claim.</em> Brussels: Carbon Market Watch, May 31, 2022. <a href="https://carbonmarketwatch.org/2022/05/31/fifa-world-cup-in-qatar-scores-own-goal-with-misleading-carbon-neutrality-claim-new-report/">carbonmarketwatch.org</a></p>
+
+        <p class="bib-entry">"FIFA Suspends Russia from World Cup, UEFA Throws Teams Out of European Competition." <em>ESPN,</em> February 28, 2022. <a href="https://www.espn.com/soccer/story/_/id/37625875/">espn.com</a></p>
+
+        <p class="bib-entry">Hafez, Shereena, et al. "FIFA World Cup 2026 Explained in Maps and Charts." <em>Al Jazeera,</em> June 10, 2026. <a href="https://www.aljazeera.com/sports/2026/6/10/fifa-world-cup-2026-explained-in-maps-and-charts">aljazeera.com</a></p>
+
+        <p class="bib-entry">International Labour Organization. <em>Elimination of Child Labour in the Soccer Ball Industry in Sialkot, Pakistan.</em> Geneva: ILO/IPEC. Accessed June 13, 2026. <a href="https://www.ilo.org/media/303521/download">ilo.org</a></p>
+
+        <p class="bib-entry">"SA's FIFA Membership Reinstated." <em>South African History Online.</em> Accessed June 13, 2026. <a href="https://sahistory.org.za/dated-event/sas-fifa-membership-reinstated-0">sahistory.org.za</a></p>
+
+        <p class="bib-entry">Serapiglia, Daniele, and Nicola Sbetti. "Was Football Fascist? The 1934 World Cup in the Postwar Memory." <em>Soccer &amp; Society</em> 21, no. 8 (2020): 875–890. <a href="https://doi.org/10.1080/14660970.2020.1793624">doi.org/10.1080/14660970.2020.1793624</a></p>
+
+        <p class="bib-entry">"The World Cup at ESMA." <em>Museo Sitio de Memoria ESMA.</em> Accessed June 13, 2026. <a href="http://www.museositioesma.gob.ar/en/item/the-world-cup-at-esma/">museositioesma.gob.ar</a></p>
+
+        <p class="bib-entry">Valinsky, Jordan. "Lionel Messi's Argentina Jerseys Are Sold Out Worldwide." <em>CNN Business,</em> December 19, 2022. <a href="https://edition.cnn.com/2022/12/19/business/adidas-leo-messi-jerseys">edition.cnn.com</a></p>
+
+        <p class="bib-entry">"Waka Waka (This Time for Africa)." <em>Wikipedia.</em> Accessed June 13, 2026. <a href="https://en.wikipedia.org/wiki/Waka_Waka_(This_Time_for_Africa)">wikipedia.org</a></p>
+
+        <p class="bib-entry">World Bank. "GDP (Current US$) – Qatar." <em>World Bank Open Data,</em> indicator NY.GDP.MKTP.CD. Accessed June 13, 2026. <a href="https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=QA">data.worldbank.org</a></p>
+
+        <p class="bib-entry">"Zinedine Zidane Headbutt on Marco Materazzi | 2006 FIFA World Cup Final." <em>FIFA.</em> Accessed June 13, 2026. <a href="https://www.fifa.com/en/articles/zinedine-zidane-marco-materazzi-final-headbutt-2006">fifa.com</a></p>
+    </div>
+</section>
+
+</main>
+</div>
+
+<!-- Navigation controls (outside the stage) -->
+<div class="deck-controls">
+    <nav class="nav-dots" id="navDots" aria-label="Slide navigation"></nav>
+</div>
+<div class="slide-counter" id="slideCounter">1 / 15</div>
+
+<!-- Edit mode affordance -->
+<div class="edit-hotzone" id="editHotzone"></div>
+<button class="edit-toggle" id="editToggle" title="Edit mode (E)">&#9998; Edit</button>
+
+<script>
+/* ============================================================
+   SLIDE PRESENTATION CONTROLLER
+============================================================ */
+class SlidePresentation {
+    constructor() {
+        this.slides = Array.from(document.querySelectorAll('.slide'));
+        this.total = this.slides.length;
+        this.current = 0;
+        this.stage = document.getElementById('deckStage');
+        this.counter = document.getElementById('slideCounter');
+        this.navDots = document.getElementById('navDots');
+
+        this.buildDots();
+        this.scaleStage();
+        this.setupKeys();
+        this.setupTouch();
+        this.setupWheel();
+        this.showSlide(0);
+
+        window.addEventListener('resize', () => this.scaleStage());
+    }
+
+    scaleStage() {
+        const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+        const x = (window.innerWidth  - 1920 * factor) / 2;
+        const y = (window.innerHeight - 1080 * factor) / 2;
+        this.stage.style.transform = `translate(${x}px,${y}px) scale(${factor})`;
+    }
+
+    buildDots() {
+        this.slides.forEach((_, i) => {
+            const d = document.createElement('button');
+            d.className = 'nav-dot';
+            d.setAttribute('aria-label', `Go to slide ${i + 1}`);
+            d.addEventListener('click', () => this.showSlide(i));
+            this.navDots.appendChild(d);
+        });
+    }
+
+    showSlide(index) {
+        index = Math.max(0, Math.min(index, this.total - 1));
+        this.slides.forEach((s, i) => {
+            const active = i === index;
+            s.classList.toggle('active', active);
+            s.classList.toggle('visible', active);
+        });
+        this.current = index;
+        document.querySelectorAll('.nav-dot').forEach((d, i) => {
+            d.classList.toggle('active', i === index);
+        });
+        if (this.counter) this.counter.textContent = `${index + 1} / ${this.total}`;
+    }
+
+    prev() { this.showSlide(this.current - 1); }
+    next() { this.showSlide(this.current + 1); }
+
+    setupKeys() {
+        document.addEventListener('keydown', e => {
+            if (e.target.getAttribute('contenteditable')) return;
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') {
+                e.preventDefault(); this.next();
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+                e.preventDefault(); this.prev();
+            } else if (e.key === 'Home') {
+                e.preventDefault(); this.showSlide(0);
+            } else if (e.key === 'End') {
+                e.preventDefault(); this.showSlide(this.total - 1);
+            }
+        });
+    }
+
+    setupTouch() {
+        let startX = 0, startY = 0;
+        this.stage.addEventListener('touchstart', e => {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        }, { passive: true });
+        this.stage.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - startX;
+            const dy = e.changedTouches[0].clientY - startY;
+            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+                dx < 0 ? this.next() : this.prev();
+            }
+        }, { passive: true });
+    }
+
+    setupWheel() {
+        let lastWheel = 0;
+        document.addEventListener('wheel', e => {
+            const now = Date.now();
+            if (now - lastWheel < 600) return;
+            lastWheel = now;
+            e.deltaY > 0 ? this.next() : this.prev();
+        }, { passive: true });
+    }
+}
+
+/* ============================================================
+   INLINE EDITOR
+============================================================ */
+class InlineEditor {
+    constructor(presentation) {
+        this.presentation = presentation;
+        this.isActive = false;
+        this.toggle = document.getElementById('editToggle');
+        this.hotzone = document.getElementById('editHotzone');
+        this.hideTimeout = null;
+
+        this.toggle.addEventListener('click', () => this.toggleEditMode());
+        this.hotzone.addEventListener('click', () => this.toggleEditMode());
+        this.hotzone.addEventListener('mouseenter', () => {
+            clearTimeout(this.hideTimeout);
+            this.toggle.classList.add('show');
+        });
+        this.hotzone.addEventListener('mouseleave', () => {
+            this.hideTimeout = setTimeout(() => {
+                if (!this.isActive) this.toggle.classList.remove('show');
+            }, 400);
+        });
+        this.toggle.addEventListener('mouseenter', () => clearTimeout(this.hideTimeout));
+        this.toggle.addEventListener('mouseleave', () => {
+            this.hideTimeout = setTimeout(() => {
+                if (!this.isActive) this.toggle.classList.remove('show');
+            }, 400);
+        });
+
+        document.addEventListener('keydown', e => {
+            if ((e.key === 'e' || e.key === 'E') && !e.target.getAttribute('contenteditable')) {
+                this.toggleEditMode();
+            }
+            if (e.ctrlKey && e.key === 's' && this.isActive) {
+                e.preventDefault(); this.saveFile();
+            }
+        });
+    }
+
+    toggleEditMode() {
+        this.isActive = !this.isActive;
+        document.body.classList.toggle('edit-mode', this.isActive);
+        this.toggle.classList.toggle('active', this.isActive);
+        this.toggle.textContent = this.isActive ? '✓ Done' : '✏ Edit';
+
+        document.querySelectorAll('.slide h1, .slide h2, .slide p, .slide li, .slide span:not(.nav-dot)')
+            .forEach(el => {
+                if (this.isActive) {
+                    el.setAttribute('contenteditable', 'true');
+                } else {
+                    el.removeAttribute('contenteditable');
+                }
+            });
+    }
+
+    saveFile() {
+        const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        const blob = new Blob([html], { type: 'text/html' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'presentation.html';
+        a.click();
+    }
+}
+
+/* ============================================================
+   INIT
+============================================================ */
+const deck = new SlidePresentation();
+const editor = new InlineEditor(deck);
+</script>
+</body>
+</html>
